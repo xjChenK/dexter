@@ -93,8 +93,36 @@ ${escapedMetrics}
    - If the user says "low P/E" without a number, use a sensible threshold (e.g., lt 15)
    - If the user says "high growth" without a number, use a sensible threshold (e.g., gt 0.20)
 5. Set limit to 25 unless the user specifies otherwise
-6. Default currency to USD unless specified
-7. Company fields (sector, industry) use GICS classification and require string values with the "eq" or "in" operator (case-insensitive). Common GICS sectors: Communication Services, Consumer Discretionary, Consumer Staples, Energy, Financials, Health Care, Industrials, Information Technology, Materials, Real Estate, Utilities. Map user intent to the correct GICS value (e.g., "tech stocks" → sector eq "Information Technology", "oil and gas" → industry eq "Oil, Gas & Consumable Fuels")
+6. Default currency to CNY for A-shares, USD for US stocks unless specified
+7. Company fields (sector, industry) use Shenwan (申万) industry classification for A-shares and require string values with the "eq" or "in" operator (case-insensitive). Common Shenwan sectors and mapping examples:
+   - "bank stocks", "financial stocks" → sector eq "银行" or "非银金融"
+   - "pharma", "medical", "healthcare" → sector eq "医药生物"
+   - "liquor", "white liquor", "food & beverage" → sector eq "食品饮料"
+   - "tech stocks", "semiconductor", "chips" → sector eq "电子"
+   - "software", "IT services" → sector eq "计算机"
+   - "auto", "new energy vehicles", "EV" → sector eq "汽车"
+   - "machinery", "industrial equipment" → sector eq "机械设备"
+   - "chemicals" → sector eq "化工"
+   - "non-ferrous", "rare earth", "lithium" → sector eq "有色金属"
+   - "steel" → sector eq "钢铁"
+   - "coal", "mining", "oil" → sector eq "采掘"
+   - "utilities", "power" → sector eq "公用事业"
+   - "transportation", "logistics", "ports" → sector eq "交通运输"
+   - "real estate", "property" → sector eq "房地产"
+   - "construction", "infrastructure" → sector eq "建筑装饰"
+   - "building materials", "cement" → sector eq "建筑材料"
+   - "electrical equipment", "new energy", "solar", "wind" → sector eq "电力设备"
+   - "defense", "military", "aerospace" → sector eq "国防军工"
+   - "home appliances" → sector eq "家用电器"
+   - "textile", "apparel" → sector eq "纺织服饰"
+   - "agriculture", "farming", "livestock" → sector eq "农林牧渔"
+   - "media", "entertainment", "gaming" → sector eq "传媒"
+   - "telecom", "5G", "communications" → sector eq "通信"
+   - "tourism", "hotels", "leisure" → sector eq "社会服务"
+   - "retail", "commerce", "trade" → sector eq "商贸零售"
+   - "environmental protection" → sector eq "环保"
+   - "beauty", "personal care" → sector eq "美容护理"
+   Map user intent to the correct Shenwan value (e.g., "liquor stocks" → sector eq "食品饮料", "semiconductor" → sector eq "电子")
 
 Return only the structured output fields.`;
 }

@@ -30,11 +30,18 @@ function fmtPct(n: unknown): string {
   return `${(num * 100).toFixed(1)}%`;
 }
 
-function fmtPrice(n: unknown): string {
+function fmtPrice(n: unknown, currency?: string): string {
   if (n === null || n === undefined) return '—';
   const num = Number(n);
   if (isNaN(num)) return '—';
-  return `$${num.toFixed(2)}`;
+  const sym = currency === 'CNY' ? '¥' : '$';
+  return `${sym}${num.toFixed(2)}`;
+}
+
+/** Detect currency from data row: returns 'CNY' if data has currency:CNY, else undefined */
+function getCurrency(row: Rec | undefined): string | undefined {
+  if (row && row.currency === 'CNY') return 'CNY';
+  return undefined;
 }
 
 function fmtDate(d: unknown): string {
@@ -64,7 +71,7 @@ export function formatIncomeStatements(data: unknown, args?: Rec): string {
   lines.push('| Period | Revenue | Op Inc | Net Inc | EPS |');
   lines.push('|--------|---------|--------|---------|-----|');
   for (const row of items as Rec[]) {
-    lines.push(`| ${fmtDate(row.report_period)} | ${fmtNum(row.revenue)} | ${fmtNum(row.operating_income)} | ${fmtNum(row.net_income)} | ${fmtPrice(row.earnings_per_share ?? row.basic_earnings_per_share)} |`);
+    lines.push(`| ${fmtDate(row.report_period)} | ${fmtNum(row.revenue)} | ${fmtNum(row.operating_income)} | ${fmtNum(row.net_income)} | ${fmtPrice(row.earnings_per_share ?? row.basic_earnings_per_share, getCurrency(row))} |`);
   }
   return lines.join('\n');
 }
@@ -136,7 +143,7 @@ export function formatHistoricalKeyRatios(data: unknown, args?: Rec): string {
   lines.push('| Period | P/E | EPS | Rev Growth | Op Margin | ROE |');
   lines.push('|--------|-----|-----|------------|-----------|-----|');
   for (const row of items as Rec[]) {
-    lines.push(`| ${fmtDate(row.report_period ?? row.date)} | ${row.pe_ratio ?? '—'} | ${fmtPrice(row.eps)} | ${fmtPct(row.revenue_growth_rate)} | ${fmtPct(row.operating_margin)} | ${fmtPct(row.roe)} |`);
+    lines.push(`| ${fmtDate(row.report_period ?? row.date)} | ${row.pe_ratio ?? '—'} | ${fmtPrice(row.eps, getCurrency(row))} | ${fmtPct(row.revenue_growth_rate)} | ${fmtPct(row.operating_margin)} | ${fmtPct(row.roe)} |`);
   }
   return lines.join('\n');
 }
@@ -148,7 +155,8 @@ export function formatHistoricalKeyRatios(data: unknown, args?: Rec): string {
 export function formatStockPrice(data: unknown): string {
   const d = (data && typeof data === 'object') ? data as Rec : {};
   const ticker = (d.ticker as string)?.toUpperCase() ?? '';
-  return `${ticker}: ${fmtPrice(d.close ?? d.price)} (H: ${fmtPrice(d.high)} L: ${fmtPrice(d.low)}) Vol: ${fmtNum(d.volume)}`;
+  const cur = getCurrency(d);
+  return `${ticker}: ${fmtPrice(d.close ?? d.price, cur)} (H: ${fmtPrice(d.high, cur)} L: ${fmtPrice(d.low, cur)}) Vol: ${fmtNum(d.volume)}`;
 }
 
 export function formatStockPrices(data: unknown): string {
@@ -158,7 +166,7 @@ export function formatStockPrices(data: unknown): string {
   lines.push('| Date | Open | Close | Volume |');
   lines.push('|------|------|-------|--------|');
   for (const row of items.slice(0, 20) as Rec[]) {
-    lines.push(`| ${row.date ?? '—'} | ${fmtPrice(row.open)} | ${fmtPrice(row.close)} | ${fmtNum(row.volume)} |`);
+    lines.push(`| ${row.date ?? '—'} | ${fmtPrice(row.open, getCurrency(row))} | ${fmtPrice(row.close, getCurrency(row))} | ${fmtNum(row.volume)} |`);
   }
   if (items.length > 20) lines.push(`... and ${items.length - 20} more rows`);
   return lines.join('\n');
@@ -182,7 +190,7 @@ export function formatInsiderTrades(data: unknown): string {
   lines.push('| Name | Title | Type | Shares | Price | Date |');
   lines.push('|------|-------|------|--------|-------|------|');
   for (const row of items.slice(0, 15) as Rec[]) {
-    lines.push(`| ${row.full_name ?? row.owner ?? '—'} | ${row.officer_title ?? '—'} | ${row.transaction_type ?? '—'} | ${fmtNum(row.shares ?? row.securities_transacted)} | ${fmtPrice(row.price_per_share)} | ${String(row.filing_date ?? row.transaction_date ?? '').slice(0, 10)} |`);
+    lines.push(`| ${row.full_name ?? row.owner ?? '—'} | ${row.officer_title ?? '—'} | ${row.transaction_type ?? '—'} | ${fmtNum(row.shares ?? row.securities_transacted)} | ${fmtPrice(row.price_per_share, getCurrency(row))} | ${String(row.filing_date ?? row.transaction_date ?? '').slice(0, 10)} |`);
   }
   return lines.join('\n');
 }
@@ -195,7 +203,7 @@ export function formatInstitutionalHoldings(data: unknown, args?: Rec): string {
   if (byTicker) {
     const ticker = (args?.ticker as string)?.toUpperCase() ?? '';
     lines.push(`Institutional Holders — ${ticker}`, '');
-    lines.push('| Filer | Shares | Value (USD) | Report |');
+    lines.push('| Filer | Shares | Value | Report |');
     lines.push('|-------|--------|-------------|--------|');
     for (const row of items.slice(0, 15) as Rec[]) {
       lines.push(`| ${row.filer_name ?? row.filer_cik ?? '—'} | ${fmtNum(row.shares)} | ${fmtNum(row.value_usd)} | ${fmtDate(row.report_period)} |`);
@@ -206,7 +214,7 @@ export function formatInstitutionalHoldings(data: unknown, args?: Rec): string {
       ?? (args?.filer_cik as string)
       ?? '';
     lines.push(`13F Holdings — ${filer}`, '');
-    lines.push('| Issuer | Ticker | Shares | Value (USD) | Report |');
+    lines.push('| Issuer | Ticker | Shares | Value | Report |');
     lines.push('|--------|--------|--------|-------------|--------|');
     for (const row of items.slice(0, 15) as Rec[]) {
       lines.push(`| ${row.name_of_issuer ?? '—'} | ${row.ticker ?? '—'} | ${fmtNum(row.shares)} | ${fmtNum(row.value_usd)} | ${fmtDate(row.report_period)} |`);
@@ -245,7 +253,7 @@ export function formatEarnings(data: unknown, args?: Rec): string {
           .join('; ')
         : '';
 
-      lines.push(`| ${cell(String(row.ticker ?? '—').toUpperCase())} | ${cell(fmtDate(row.report_period))} | ${cell(row.fiscal_period)} | ${cell(row.source_type)} | ${cell(fmtDate(row.filing_date))} | ${cell(fmtNum(figures.revenue))} | ${cell(fmtPrice(eps))} | ${cell(signals || '—')} |`);
+      lines.push(`| ${cell(String(row.ticker ?? '—').toUpperCase())} | ${cell(fmtDate(row.report_period))} | ${cell(row.fiscal_period)} | ${cell(row.source_type)} | ${cell(fmtDate(row.filing_date))} | ${cell(fmtNum(figures.revenue))} | ${cell(fmtPrice(eps, getCurrency(row)))} | ${cell(signals || '—')} |`);
     }
 
     if (rows.length > 15) lines.push('', `(showing 15 of ${rows.length})`);
@@ -268,7 +276,7 @@ export function formatEarnings(data: unknown, args?: Rec): string {
   if (figures.revenue !== undefined) lines.push(`Revenue: ${fmtNum(figures.revenue)}`);
   if (figures.net_income !== undefined) lines.push(`Net Income: ${fmtNum(figures.net_income)}`);
   const eps = figures.earnings_per_share ?? figures.eps;
-  if (eps !== undefined) lines.push(`EPS: ${fmtPrice(eps)}`);
+  if (eps !== undefined) lines.push(`EPS: ${fmtPrice(eps, getCurrency(d))}`);
   if (figures.revenue_surprise !== undefined) lines.push(`Revenue Surprise: ${fmtPct(figures.revenue_surprise)}`);
   if (figures.eps_surprise !== undefined) lines.push(`EPS Surprise: ${fmtPct(figures.eps_surprise)}`);
   return lines.join('\n');
@@ -277,7 +285,8 @@ export function formatEarnings(data: unknown, args?: Rec): string {
 export function formatCryptoPrice(data: unknown): string {
   const d = (data && typeof data === 'object') ? data as Rec : {};
   const ticker = (d.ticker as string)?.toUpperCase() ?? '';
-  return `${ticker}: ${fmtPrice(d.close ?? d.price)} (H: ${fmtPrice(d.high)} L: ${fmtPrice(d.low)}) Vol: ${fmtNum(d.volume)}`;
+  const cur = getCurrency(d);
+  return `${ticker}: ${fmtPrice(d.close ?? d.price, cur)} (H: ${fmtPrice(d.high, cur)} L: ${fmtPrice(d.low, cur)}) Vol: ${fmtNum(d.volume)}`;
 }
 
 export function formatFinancialSegments(data: unknown, args?: Rec): string {
